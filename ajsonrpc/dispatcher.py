@@ -58,11 +58,11 @@ class Dispatcher(MutableMapping):
     @staticmethod
     def _getattr_function(prototype: Any, attr: str) -> Callable:
         """Fix the issue of accessing instance method of a class.
-        
+
         Class.method(self, *args **kwargs) requires the first argument to be
         instance, but it was not given. Substitute method with a partial
         function where the first argument is an empty class constructor.
-        
+
         """
 
         method = getattr(prototype, attr)
@@ -102,6 +102,20 @@ class Dispatcher(MutableMapping):
             prefix = cls.__name__.lower() + '.'
 
         self.update(Dispatcher._extract_methods(cls, prefix=prefix))
+
+    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None):
+        """
+            # TODO: add validation params
+            # TODO: replace dict to custom class, example CustomHandler
+            add class methods
+        """
+        if prefix is None:
+            prefix = cls.__name__.lower() + '.'
+
+        self[f'{prefix}{func_name}'] = dict(
+            cls=cls,
+            func_name=func_name
+        )
 
     def add_object(self, obj: Any, prefix: Optional[str] = None) -> None:
         if prefix is None:

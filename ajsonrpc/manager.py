@@ -37,6 +37,10 @@ class AsyncJSONRPCResponseManager:
             )
         else:
             try:
+                # TODO: .dispatcher.py:106
+                if isinstance(method, dict):
+                    obj = method['cls'](request)
+                    method = getattr(obj, method['func_name'])
                 result = await method(*request.args, **request.kwargs) \
                     if inspect.iscoroutinefunction(method) \
                     else method(*request.args, **request.kwargs)
