@@ -101,7 +101,8 @@ class JSONRPC20Request:
                 method: str,
                 params: Optional[Union[Mapping[str, Any], Iterable[Any]]] = None,
                 id: Optional[Union[str, int]] = None,
-                is_notification: bool = False
+                is_notification: bool = False,
+                extra_data: dict = None,
                 ) -> None:
         request_body = {
             "jsonrpc": "2.0",
@@ -115,6 +116,8 @@ class JSONRPC20Request:
         if not is_notification:
             # For non-notifications "id" has to be in body, even if null
             request_body["id"] = id
+
+        self.extra_data = extra_data or {}
 
         self._body = {}  # init body
         self.body = request_body

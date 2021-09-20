@@ -1,3 +1,4 @@
+import copy
 import json
 import inspect
 import asyncio
@@ -37,13 +38,19 @@ class AsyncJSONRPCResponseManager:
             )
         else:
             try:
-                # TODO: .dispatcher.py:106
+                # controller - class with method
                 if isinstance(method, dict):
                     obj = method['cls'](request)
                     method = getattr(obj, method['func_name'])
-                result = await method(*request.args, **request.kwargs) \
-                    if inspect.iscoroutinefunction(method) \
-                    else method(*request.args, **request.kwargs)
+                    result, error = await method() \
+                        if inspect.iscoroutinefunction(method) \
+                        else method()   # type: JSONRPC20Response
+                # controller - function or object with method
+                else:
+                    result, error = await method(request) \
+                        if inspect.iscoroutinefunction(method) \
+                        else method(request)    # type: JSONRPC20Response
+
             except JSONRPC20DispatchException as dispatch_error:
                 # Dispatcher method raised exception with controlled "data"
                 output = JSONRPC20Response(
@@ -51,6 +58,7 @@ class AsyncJSONRPCResponseManager:
                     id=response_id
                 )
             except Exception as e:
+                raise e
                 if is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
                     output = JSONRPC20Response(
@@ -70,21 +78,22 @@ class AsyncJSONRPCResponseManager:
                         id=response_id
                     )
             else:
-                output = JSONRPC20Response(result=result, id=response_id)
+                output = JSONRPC20Response(result=result, error=error, id=response_id)
 
         if not request.is_notification:
             return output
 
-    async def get_response_for_request_body(self, request_body) -> Optional[JSONRPC20Response]:
+    async def get_response_for_request_body(self, request_body, extra_data: dict = None) -> Optional[JSONRPC20Response]:
         """Catch parse error as well"""
         try:
             request = JSONRPC20Request.from_body(request_body)
+            request.extra_data = extra_data
         except ValueError:
             return JSONRPC20Response(error=JSONRPC20InvalidRequest())
         else:
             return await self.get_response_for_request(request)
 
-    async def get_response_for_payload(self, payload: str) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
+    async def get_response_for_payload(self, payload: str, extra_data: dict = None) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
         """Top level handler
 
         NOTE: top level handler, accepts string payload.
@@ -102,8 +111,9 @@ class AsyncJSONRPCResponseManager:
             return JSONRPC20Response(error=JSONRPC20InvalidRequest())
 
         requests_bodies = request_data if is_batch_request else [request_data]
+
         responses = await asyncio.gather(*[
-            self.get_response_for_request_body(request_body)
+            self.get_response_for_request_body(request_body, extra_data=copy.copy(extra_data))
             for request_body in requests_bodies
         ])
         nonempty_responses = [r for r in responses if r is not None]
