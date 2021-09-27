@@ -10,6 +10,9 @@ import types
 from typing import Any, Optional, Mapping
 from collections.abc import Mapping as CollectionsMapping, MutableMapping, Callable
 
+import logging
+logger = logging.getLogger()
+
 
 class Dispatcher(MutableMapping):
 
@@ -103,16 +106,21 @@ class Dispatcher(MutableMapping):
 
         self.update(Dispatcher._extract_methods(cls, prefix=prefix))
 
-    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None) -> None:
+    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None, schema = None) -> None:
+        """
+        schema: marshmallow.Schema for validation params
+        """
         # check function in class
-        getattr(cls, func_name)
-
         if prefix is None:
             prefix = cls.__name__.lower() + '.'
 
-        self[f'{prefix}{func_name}'] = dict(
+        method = f'{prefix}{func_name}'
+        logger.debug(f'{self.__class__.__name__}::add_class_method: msg=add method {method}')
+
+        self[method] = dict(
             cls=cls,
-            func_name=func_name
+            func_name=func_name,
+            schema=schema
         )
 
     def add_object(self, obj: Any, prefix: Optional[str] = None) -> None:

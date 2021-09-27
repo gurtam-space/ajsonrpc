@@ -8,7 +8,7 @@ from .core import (
     JSONRPC20Request, JSONRPC20BatchRequest, JSONRPC20Response,
     JSONRPC20BatchResponse, JSONRPC20MethodNotFound, JSONRPC20InvalidParams,
     JSONRPC20ServerError, JSONRPC20ParseError, JSONRPC20InvalidRequest,
-    JSONRPC20DispatchException,
+    JSONRPC20DispatchException, JSONRPC20InvalidParamsException,
 )
 from .dispatcher import Dispatcher
 from .utils import is_invalid_params
@@ -40,6 +40,13 @@ class AsyncJSONRPCResponseManager:
             try:
                 # controller - class with method
                 if isinstance(method, dict):
+                    # validate params
+                    schema = method.get('schema')
+                    if schema:
+                        validation_errors = request.validate_params(schema)
+                        if validation_errors:
+                            raise JSONRPC20InvalidParamsException(data=validation_errors)
+                    # run methods
                     obj = method['cls'](request)
                     method = getattr(obj, method['func_name'])
                     result, error = await method() \
@@ -51,12 +58,19 @@ class AsyncJSONRPCResponseManager:
                         if inspect.iscoroutinefunction(method) \
                         else method(request)    # type: JSONRPC20Response
 
+            except JSONRPC20InvalidParamsException as dispatch_error:
+                output = JSONRPC20Response(
+                    error=dispatch_error.error,
+                    id=response_id
+                )
+
             except JSONRPC20DispatchException as dispatch_error:
                 # Dispatcher method raised exception with controlled "data"
                 output = JSONRPC20Response(
                     error=dispatch_error.error,
                     id=response_id
                 )
+
             except Exception as e:
                 raise e
                 if is_invalid_params(method, *request.args, **request.kwargs):

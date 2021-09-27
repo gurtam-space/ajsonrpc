@@ -2,6 +2,7 @@ from typing import Union, Optional, Any, Iterable, Mapping, List, Dict
 from numbers import Number
 import warnings
 import collections.abc
+from .utils import validate_by_schema
 
 
 class JSONRPC20RequestIdWarning(UserWarning):
@@ -88,6 +89,10 @@ class JSONRPC20Request:
             included in the body.
         is_notification:
             a boolean flag indicating whether to include id in the body or not.
+        extra_data:
+            extra data for handler - added from auth_callback
+        schema:
+            marshmallow.Schema for validation params
 
     Attributes:
         _body (dict): body of the request. It should always contain valid data and
@@ -98,12 +103,13 @@ class JSONRPC20Request:
         modifications via self._body
     """
     def __init__(self,
-                method: str,
-                params: Optional[Union[Mapping[str, Any], Iterable[Any]]] = None,
-                id: Optional[Union[str, int]] = None,
-                is_notification: bool = False,
-                extra_data: dict = None,
-                ) -> None:
+                 method: str,
+                 params: Optional[Union[Mapping[str, Any], Iterable[Any]]] = None,
+                 id: Optional[Union[str, int]] = None,
+                 is_notification: bool = False,
+                 extra_data: dict = None,
+                 schema = None
+                 ) -> None:
         request_body = {
             "jsonrpc": "2.0",
             "method": method,
@@ -121,6 +127,12 @@ class JSONRPC20Request:
 
         self._body = {}  # init body
         self.body = request_body
+
+        # validation params
+        if self.params and schema:
+            validation_errors = self.validate_params(schema)
+            if validation_errors:
+                raise JSONRPC20InvalidParamsException(data=validation_errors)
 
     @property
     def body(self):
@@ -140,7 +152,7 @@ class JSONRPC20Request:
 
         self.validate_method(value.get("method"))
         if "params" in value:
-            self.validate_params(value["params"])
+            self.check_params(value["params"])
 
         # Validate id for non-notification
         if "id" in value:
@@ -169,12 +181,21 @@ class JSONRPC20Request:
         self.validate_method(value)
         self._body["method"] = value
 
+    def validate_params(self, schema) -> list:
+        """
+        validate params and set to val-property
+        schema: marshmallow.Schema for validation params
+        return list errors
+        """
+        self.params, errors = validate_by_schema(schema, self.params)
+        return errors
+
     @property
     def params(self) -> Optional[Union[Mapping[str, Any], Iterable[Any]]]:
         return self.body.get("params")
 
     @staticmethod
-    def validate_params(value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
+    def check_params(value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
         """
         Note: params has to be None, dict or iterable. In the latter case it would be
         converted to a list. It is possible to set param as tuple or even string as they
@@ -185,7 +206,7 @@ class JSONRPC20Request:
 
     @params.setter
     def params(self, value: Optional[Union[Mapping[str, Any], Iterable[Any]]]) -> None:
-        self.validate_params(value)
+        self.check_params(value)
         self._body["params"] = value
 
     @params.deleter
@@ -608,5 +629,14 @@ class JSONRPC20DispatchException(JSONRPC20Exception):
     """JSON-RPC Base Exception for dispatcher methods."""
 
     def __init__(self, code=None, message=None, data=None, *args, **kwargs):
-        super(JSONRPC20DispatchException, self).__init__(args, kwargs)
+        super().__init__(args, kwargs)
         self.error = JSONRPC20Error(code=code, data=data, message=message)
+
+
+class JSONRPC20InvalidParamsException(JSONRPC20Exception):
+
+    """JSON-RPC Invalid Params Exception for dispatcher methods."""
+
+    def __init__(self, data=None, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.error = JSONRPC20InvalidParams(data=data)
