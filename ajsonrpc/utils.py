@@ -35,7 +35,7 @@ def is_invalid_params(func, *args, **kwargs):
     return not (len(params_required) <= len(args) <= len(params))
 
 
-def calc_errors_from_vd(errors: dict, data_on_validate: dict={}) -> list:
+def calc_errors_from_vd(errors: dict, data_on_validate: dict = {}) -> list:
     """ calc errors from validate-data (errors) by UnmarshalResult """
     result_errors = []
     # errors = {field_name: [errors-msgs]}
@@ -48,11 +48,17 @@ def calc_errors_from_vd(errors: dict, data_on_validate: dict={}) -> list:
                     reason=msg))
 
         elif isinstance(errors[field_name], dict):
-            for msgs in errors[field_name].values():
+            for el_num in errors[field_name]:
+                msgs = errors[field_name][el_num]
+                from typing import Iterable
+
                 for msg in msgs:
+                    value = data_on_validate.get(field_name) if type(data_on_validate) == dict else data_on_validate
+                    if isinstance(value, Iterable):
+                        value = value[el_num]
                     result_errors.append(dict(
-                        selector=field_name,
-                        value=data_on_validate.get(field_name) if type(data_on_validate) == dict else data_on_validate,
+                        selector=f'{field_name}.{el_num}',
+                        value=value,
                         reason=msg))
 
         else:
