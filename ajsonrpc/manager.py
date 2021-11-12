@@ -72,8 +72,9 @@ class AsyncJSONRPCResponseManager:
                 )
 
             except Exception as e:
-                raise e
-                if is_invalid_params(method, *request.args, **request.kwargs):
+                # raise e
+                # TODO: fix check is_invalid_params
+                if 1 == 2 and is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
                     output = JSONRPC20Response(
                         error=JSONRPC20InvalidParams(),
