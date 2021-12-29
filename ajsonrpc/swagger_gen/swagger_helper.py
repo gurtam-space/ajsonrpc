@@ -160,7 +160,7 @@ def generate_swagger_info(
             'tags': [handler_cls.__name__],
             'summary': path_summary,
             'description': path_description,
-            'parameters': [],
+            # 'parameters': [],
             'responses': {
                 '200': {
                     'description': 'successful operation',
@@ -222,9 +222,13 @@ def generate_swagger_info(
                         'default': '2.0',
                         'type': 'string'
                     },
+                    'id': {
+                        'default': 'request1',
+                        'type': 'string'
+                    },
                     'method': {
                         # TODO: add prefix
-                        'default': f'{func_name}',
+                        'default': f'{method_name}',
                         'type': 'string'
                     },
                 }
@@ -274,7 +278,7 @@ def generate_swagger_info(
                 'content': {
                     'application/json': {
                         'schema': {
-                            'type': 'array',
+                            # 'type': 'object',
                             'items': {
                                 '$ref': f'#/components/schemas/{definition_name}'
                             }
