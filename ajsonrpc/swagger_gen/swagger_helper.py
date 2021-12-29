@@ -19,6 +19,8 @@ SWAGGER_TEMPLATE = abspath(join(dirname(__file__), "templates"))
 
 # class method docstring separator that is used to separate path summary and description
 DOCSTRING_SEPARATOR = '&&'
+# method of request
+REQUEST_METHOD = METH_POST
 
 
 # todo: FIX ADD REQUIRED FIELDS
@@ -131,8 +133,6 @@ def generate_swagger_info(
         func_name = method_cfg['func_name']
         schema = method_cfg.get('schema')
 
-        # method of request
-        request_method = METH_POST
         # route_info = method_cfg.get('info')
         # route_path = f"{route_info.get('path') or route_info.get('formatter')}"
         route_path = f'/api/platform#{func_name}'
@@ -290,7 +290,7 @@ def generate_swagger_info(
 
         # add to docs
         swagger['paths'].setdefault(route_path, {})
-        swagger['paths'][route_path][request_method.lower()] = end_point_doc_by_method
+        swagger['paths'][route_path][REQUEST_METHOD.lower()] = end_point_doc_by_method
 
     # set tags, schemas
     swagger['tags'] = tags
