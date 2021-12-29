@@ -71,6 +71,7 @@ def get_schema_props(schema_fields) -> (dict, list):
 # create dict with Swagger data
 def generate_swagger_info(
         routes: list,
+        path: str,
         description: str,
         api_version: str,
         auth_header_name: str,
@@ -130,14 +131,13 @@ def generate_swagger_info(
     schemas = {}
 
     for method_cfg in routes:    # type: dict
-        # method data
+        # -- method data
         handler_cls = method_cfg['cls']
         func_name = method_cfg['func_name']
         schema = method_cfg.get('schema')
+        method_name = method_cfg.get('name')
 
-        # route_info = method_cfg.get('info')
-        # route_path = f"{route_info.get('path') or route_info.get('formatter')}"
-        route_path = f'/api/platform#{func_name}'
+        route_path = f'{path}#{method_name}'
 
         # -- tags
         if handler_cls.__name__ not in tag_names:
@@ -245,7 +245,7 @@ def generate_swagger_info(
             logger.error(f'generate_swagger_info: msg=not implemented dict schemas, go fix code!')
             # one_of = []
             # for item in data:
-            #     definition_name = f'{item["name"]}.{func_name}'
+            #     definition_name = schema.__class__.__name__
             #     # add definition
             #     schemas[definition_name] = {
             #         'type': 'object',
@@ -267,8 +267,7 @@ def generate_swagger_info(
             #     }
             # }
         else:
-            # TODO: use prefix + name
-            definition_name = f'{handler_cls.__name__}.{func_name}'
+            definition_name = schema.__class__.__name__
             # add definition
             end_point_doc_by_method['requestBody'] = {
                 'required': True,
