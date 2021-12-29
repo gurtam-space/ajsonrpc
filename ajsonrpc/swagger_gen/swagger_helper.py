@@ -45,14 +45,14 @@ def get_schema_props(schema_fields) -> (dict, list):
             # get swagger data type
             data_type = get_data_type(param_field)
 
-            object = {
+            obj = {
                 # 'description': param_field.name,
                 # 'required': param_field.required,
                 # 'default': param_field.default if param_field.default else '',
                 'type': data_type,
             }
             if param_field.default:
-                object['default'] = param_field.default
+                obj['default'] = param_field.default
 
             if param_field.required:
                 # object['required'] = param_field.required
@@ -60,23 +60,23 @@ def get_schema_props(schema_fields) -> (dict, list):
 
             # add items property if type is array
             if data_type == 'array':
-                object['items'] = {
+                obj['items'] = {
                     'type': get_data_type(param_field.container)
                 }
 
-            schema_props[param_field.name] = object
+            schema_props[param_field.name] = obj
     return schema_props, required_names
 
 
 # create dict with Swagger data
 def generate_swagger_info(
-    routes: list,
-    description: str,
-    api_version: str,
-    auth_header_name: str,
-    title: str,
-    host: str,
-    contact: object,
+        routes: list,
+        description: str,
+        api_version: str,
+        auth_header_name: str,
+        title: str,
+        host: str,
+        contact: dict,
 ) -> dict:
     # Load base Swagger template
     # with open(join(SWAGGER_TEMPLATE, "swagger.json"), "r") as f:
@@ -91,36 +91,39 @@ def generate_swagger_info(
     #
     # # The Swagger OBJ
     # swagger = yaml.safe_load(swagger_base)
-    swagger = {}
-    swagger['openapi'] = '3.0.0'
-    swagger['info'] = {
-        'title': title,
-        # 'description': 'This is a sample server for a pet store.',
-        'contact': contact,
-        'version': api_version
-    }
-    swagger['servers'] = [
-        {
-          'url': host
-        },
-      ]
-    swagger['paths'] = {}
-    swagger['components'] = {}
+    # result swagger config
+    result = dict(
+        openapi='3.0.0',
+        info=dict(
+            title=title,
+            description=description,
+            contact=contact,
+            version=api_version,
+        ),
+        servers=[dict(
+            url=host
+        )],
+        paths=dict(),
+        components=dict(
+            securitySchemes=dict(),
+            schemas=dict(),
+        ),
+        security=[],
+        tags=[]
+    )
 
     # if isset access-token - add header
     if auth_header_name:
-        swagger['components'] = {
-            'securitySchemes': {
-                auth_header_name: {
-                    'type': 'apiKey',
-                    'name': auth_header_name,
-                    'in': 'header'
-                }
+        result['components']['securitySchemes'] = {
+            auth_header_name: {
+                'type': 'apiKey',
+                'name': auth_header_name,
+                'in': 'header'
             }
         }
-        swagger['security'] = [{
+        result['security'].append({
             auth_header_name: []
-        }]
+        })
 
     # tags, schemas for swagger
     tags = []
@@ -289,11 +292,11 @@ def generate_swagger_info(
             # add body-params
 
         # add to docs
-        swagger['paths'].setdefault(route_path, {})
-        swagger['paths'][route_path][REQUEST_METHOD.lower()] = end_point_doc_by_method
+        result['paths'].setdefault(route_path, {})
+        result['paths'][route_path][REQUEST_METHOD.lower()] = end_point_doc_by_method
 
     # set tags, schemas
-    swagger['tags'] = tags
-    swagger['components']['schemas'] = schemas
+    result['tags'] = tags
+    result['components']['schemas'] = schemas
 
-    return swagger
+    return result
