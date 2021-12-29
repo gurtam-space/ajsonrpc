@@ -103,6 +103,7 @@ def generate_swagger_info(
         },
       ]
     swagger['paths'] = {}
+    swagger['components'] = {}
 
     # if isset access-token - add header
     if auth_header_name:
