@@ -75,7 +75,7 @@ def generate_swagger_info(
         api_version: str,
         auth_header_name: str,
         title: str,
-        host: str,
+        hosts: list,
         contact: dict,
 ) -> dict:
     # Load base Swagger template
@@ -91,6 +91,7 @@ def generate_swagger_info(
     #
     # # The Swagger OBJ
     # swagger = yaml.safe_load(swagger_base)
+
     # result swagger config
     result = dict(
         openapi='3.0.0',
@@ -100,9 +101,7 @@ def generate_swagger_info(
             contact=contact,
             version=api_version,
         ),
-        servers=[dict(
-            url=host
-        )],
+        servers=[dict(url=addr) for addr in hosts],
         paths=dict(),
         components=dict(
             securitySchemes=dict(),
