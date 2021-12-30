@@ -18,6 +18,7 @@ class JSONRPCAiohttp(CommonBackend):
     @property
     def handler(self):
         async def _handler(request: Request):
+            resp = None
             # -- check auth
             if self.auth_callback:
                 auth_result = await self.auth_callback(request) \
@@ -33,7 +34,8 @@ class JSONRPCAiohttp(CommonBackend):
             if resp_status == 200:
                 txt = await request.text()
                 rpc_resp = await self.manager.get_response_for_payload(txt, extra_data)
-                resp = Response(body=json.dumps(rpc_resp.body), content_type="application/json")
+                if rpc_resp:
+                    resp = Response(body=json.dumps(rpc_resp.body), content_type="application/json")
             else:
                 resp = Response(status=resp_status)
 

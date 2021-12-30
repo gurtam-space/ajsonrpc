@@ -18,7 +18,7 @@ logger = logging.getLogger()
 SWAGGER_TEMPLATE = abspath(join(dirname(__file__), "templates"))
 
 # class method docstring separator that is used to separate path summary and description
-DOCSTRING_SEPARATOR = '&&'
+DOCSTRING_SEPARATOR = '\n'
 # method of request
 REQUEST_METHOD = METH_POST
 
@@ -151,15 +151,13 @@ def generate_swagger_info(
 
         # -- class method docstring
         method_docstring = getattr(handler_cls, func_name).__doc__ or ''
-        # split class method docstring into 2 string max and strip them
         split_docstring = list(map(lambda str: str.strip(), method_docstring.split(DOCSTRING_SEPARATOR, 2)))
-        # unpack path summary and description
-        path_summary, path_description = split_docstring + [''] * (2 - len(split_docstring))
+
 
         end_point_doc_by_method = {
             'tags': [handler_cls.__name__],
-            'summary': path_summary,
-            'description': path_description,
+            'summary': split_docstring[0],
+            'description': '<br>'.join(split_docstring),
             # 'parameters': [],
             'responses': {
                 '200': {
@@ -278,10 +276,8 @@ def generate_swagger_info(
                 'content': {
                     'application/json': {
                         'schema': {
-                            # 'type': 'object',
-                            'items': {
-                                '$ref': f'#/components/schemas/{definition_name}'
-                            }
+                            'type': 'object',
+                            '$ref': f'#/components/schemas/{definition_name}'
                         }
                     }
                 }
