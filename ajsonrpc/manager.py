@@ -103,8 +103,8 @@ class AsyncJSONRPCResponseManager:
         try:
             request = JSONRPC20Request.from_body(request_body)
             request.extra_data = extra_data
-        except ValueError:
-            return JSONRPC20Response(error=JSONRPC20InvalidRequest())
+        except ValueError as e:
+            return JSONRPC20Response(error=JSONRPC20InvalidRequest(data=dict(reason=str(e))))
         else:
             return await self.get_response_for_request(request)
 
