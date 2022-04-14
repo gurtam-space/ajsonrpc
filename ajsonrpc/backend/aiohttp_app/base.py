@@ -4,7 +4,7 @@ AUTH_HEADER_NAME_BASE = 'X-AccessToken'
 
 # set header name with access token
 def set_auth_header_name(app: object, value: str):
-    setattr(app, '_auth_header_name', value)
+    setattr(app, '_auth_header_name', value or AUTH_HEADER_NAME_BASE)
 
 
 # get header name with access token
