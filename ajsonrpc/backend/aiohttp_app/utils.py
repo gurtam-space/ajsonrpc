@@ -91,7 +91,7 @@ def calc_request_get_params(schema: Schema, request: Request) -> (dict, list):
 
 
 # standard result item
-def get_result_item(data, fields, fields_dict: dict = {}) -> dict:
+def get_result_item(data, fields, fields_dict: dict = {}, filter_isset: bool = False) -> dict:
     """
     :param data: dict or object withs function get(field_name)
     :param fields: list or set
@@ -101,11 +101,13 @@ def get_result_item(data, fields, fields_dict: dict = {}) -> dict:
     result = {}
     # function getter field from data
     getter = dict.get if isinstance(data, dict) else getattr
+    has_attr = f = lambda obj, name: name in obj if isinstance(data, dict) else hasattr
     for field in fields:
-        # value field getter: string or function
-        field_getter = fields_dict.get(field, field)
-        if isinstance(field_getter, str):
-            result[field] = getter(data, field_getter, None)
-        else:
-            result[field] = field_getter(data)
+        if not filter_isset or has_attr(data, field):
+            # value field getter: string or function
+            field_getter = fields_dict.get(field, field)
+            if isinstance(field_getter, str):
+                result[field] = getter(data, field_getter, None)
+            else:
+                result[field] = field_getter(data)
     return result

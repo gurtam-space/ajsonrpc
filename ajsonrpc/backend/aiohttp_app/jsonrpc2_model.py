@@ -23,11 +23,10 @@ class BaseJSONRPC20Model:
     def fields_dict(cls) -> dict:
         return {}
 
-    # return result filtered item
-    def get_result_item(self, item: dict, f_dict: dict = None) -> dict:
+    def get_result_item(self, item: dict, f_dict: dict = None, filter_isset: bool = False) -> dict:
         if not item:
             return {}
         fields_dict = self.fields_dict()
         if f_dict:
             fields_dict.update(f_dict)
-        return get_result_item(item, self.fields, fields_dict)
+        return get_result_item(item, self.fields, fields_dict, filter_isset=filter_isset)
