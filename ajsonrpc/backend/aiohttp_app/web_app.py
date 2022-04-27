@@ -33,7 +33,7 @@ import logging
 logger = logging.getLogger()
 
 # task list to cancel
-CANCEL_TASKS_DEF = '_run_app', 'ClickhouseDB.run_wait',
+CANCEL_TASKS_DEF = '_run_app', 'MQTTProtocol._read_loop', 'Client._resend_qos_messages', 'ClickhouseDB.run_wait',
 
 
 # advanced web-Application
