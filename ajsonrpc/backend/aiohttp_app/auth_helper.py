@@ -26,7 +26,7 @@ async def get_auth_data(key: str) -> dict:
             entity='token',
             c=[['key', key, 'eq']],
             count=1,
-            fields=['id', 'cid', 'access_lvl', 'subscription']
+            fields=['id', 'cid', 'access_lvl', 'info', 'subscription']
         )
     )
     if errs:
@@ -36,6 +36,7 @@ async def get_auth_data(key: str) -> dict:
         cid=token_data['cid'],
         token_id=token_data['id'],
         access_lvl=token_data['access_lvl'],
+        app_id=token_data['info'].get('app_id') or None,
         subscription_id=subscription.get('subscription_id') or None if (subscription := token_data.get('subscription')) else None,
         token=key,
     ) if token_data else {}

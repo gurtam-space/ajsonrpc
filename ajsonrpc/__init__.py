@@ -1,4 +1,4 @@
 from .dispatcher import Dispatcher
 from .manager import AsyncJSONRPCResponseManager
 
-__version__ = "2.0.2"
+__version__ = "2.0.3"
