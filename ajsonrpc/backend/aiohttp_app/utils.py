@@ -63,24 +63,23 @@ def calc_request_get_params(schema: Schema, request: Request) -> (dict, list):
 
     # -- get params from request
     for param_name in schema.fields:
+        if param_name not in request.match_info and param_name not in request.query:
+            continue
         # param-value, select from request
-        p = request.match_info.get(param_name, '') or request.query.get(param_name, '')
-        if p == 'all':
-            p = []
-        else:
-            # schema.type
-            f_type = schema.fields[param_name]
-            # list
-            if isinstance(f_type, m_fields.List):
-                if type(p) not in (list, set, tuple):
-                    # TODO: or json.loads?
-                    p = str(p).split(',') if p else []
-            # dict
-            elif isinstance(f_type, (m_fields.Dict, m_fields.Nested)):
-                if isinstance(p, str):
-                    p = json.loads(p)
-            elif p is not None:
-                pass
+        p = request.match_info.get(param_name) or request.query.get(param_name)
+        # schema.type
+        f_type = schema.fields[param_name]
+        # list
+        if isinstance(f_type, m_fields.List):
+            if type(p) not in (list, set, tuple):
+                # TODO: or json.loads?
+                p = str(p).split(',') if p else []
+        # dict
+        elif isinstance(f_type, (m_fields.Dict, m_fields.Nested)):
+            if isinstance(p, str):
+                p = json.loads(p)
+        elif p is not None:
+            pass
         if p is not None:
             params[param_name] = p
 
