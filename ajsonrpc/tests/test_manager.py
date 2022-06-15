@@ -94,7 +94,7 @@ class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
         req = JSONRPC20Request("unexpected_exception", is_notification=True)
         res = await self.manager.get_response_for_request(req)
         self.assertIsNone(res)
-    
+
     async def test_get_response_for_payload_batch(self):
         response = await self.manager.get_response_for_payload(json.dumps([
             {"jsonrpc": "2.0", "method": "subtract", "params": [3, 4], "id": 1},
@@ -114,7 +114,7 @@ class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
 
     async def test_verbose_error(self):
         manager = AsyncJSONRPCResponseManager(
-            dispatcher=self.dispatcher, is_server_error_verbose=True)
+            dispatcher=self.dispatcher)
         req = JSONRPC20Request("unexpected_exception", id=0)
         res = await manager.get_response_for_request(req)
         self.assertEqual(
@@ -122,7 +122,6 @@ class TestAsyncJSONRPCResponseManager(unittest.IsolatedAsyncioTestCase):
             {'type': 'ValueError', 'args': ('Unexpected',), 'message': 'Unexpected'}
         )
 
-        manager.is_server_error_verbose = False
         res = await manager.get_response_for_request(req)
         self.assertIsNone(res.error.data)
 

@@ -18,11 +18,10 @@ class AsyncJSONRPCResponseManager:
 
     """Async JSON-RPC Response manager."""
 
-    def __init__(self, dispatcher: Dispatcher, serialize=json.dumps, deserialize=json.loads, is_server_error_verbose=False):
+    def __init__(self, dispatcher: Dispatcher, serialize=json.dumps, deserialize=json.loads):
         self.dispatcher = dispatcher
         self.serialize = serialize
         self.deserialize = deserialize
-        self.is_server_error_verbose = is_server_error_verbose
 
     async def get_response_for_request(self, request: JSONRPC20Request) -> Optional[JSONRPC20Response]:
         """Get response for an individual request."""
@@ -71,8 +70,18 @@ class AsyncJSONRPCResponseManager:
                     id=response_id
                 )
 
+            except PermissionError as e:
+                output = JSONRPC20Response(
+                    error=JSONRPC20InvalidRequest(
+                        data=[{
+                            "selector": e.__class__.__name__,
+                            "reason": str(e),
+                        }]
+                    ),
+                    id=response_id
+                )
+
             except Exception as e:
-                raise e
                 # TODO: fix check is_invalid_params
                 if 1 == 2 and is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
@@ -86,9 +95,8 @@ class AsyncJSONRPCResponseManager:
                         error=JSONRPC20ServerError(
                             data=[{
                                 "selector": e.__class__.__name__,
-                                "value": e.args,
                                 "reason": str(e),
-                            }] if self.is_server_error_verbose else None
+                            }]
                         ),
                         id=response_id
                     )
