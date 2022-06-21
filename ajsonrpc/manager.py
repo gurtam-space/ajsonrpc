@@ -10,8 +10,11 @@ from .core import (
     JSONRPC20ServerError, JSONRPC20ParseError, JSONRPC20InvalidRequest,
     JSONRPC20DispatchException, JSONRPC20InvalidParamsException,
 )
-from .dispatcher import Dispatcher
+from .dispatcher import Dispatcher, MethodSettings
 from .utils import is_invalid_params
+
+import logging
+logger = logging.getLogger()
 
 
 class AsyncJSONRPCResponseManager:
@@ -38,16 +41,18 @@ class AsyncJSONRPCResponseManager:
         else:
             try:
                 # controller - class with method
-                if isinstance(method, dict):
+                if isinstance(method, MethodSettings):
+                    # deprecated log
+                    if method.deprecated:
+                        logger.warning(f'{__name__}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
                     # validate params
-                    schema = method.get('schema')
-                    if schema:
-                        validation_errors = request.validate_params(schema)
+                    if method.schema:
+                        validation_errors = request.validate_params(method.schema)
                         if validation_errors:
                             raise JSONRPC20InvalidParamsException(data=validation_errors)
                     # run methods
-                    obj = method['cls'](request)
-                    method = getattr(obj, method['func_name'])
+                    obj = method.cls(request)
+                    method = getattr(obj, method.func_name)
                     result, error = await method() \
                         if inspect.iscoroutinefunction(method) \
                         else method()   # type: JSONRPC20Response
@@ -102,6 +107,9 @@ class AsyncJSONRPCResponseManager:
                     )
             else:
                 output = JSONRPC20Response(result=result, error=error, id=response_id)
+
+        # result log
+        logger.debug(f'{__name__}: name={request.method}, output={output.__class__.__name__} {bool(output.result)} {bool(output.error)}')
 
         if not request.is_notification:
             return output

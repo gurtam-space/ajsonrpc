@@ -9,9 +9,24 @@ import inspect
 import types
 from typing import Any, Optional, Mapping
 from collections.abc import Mapping as CollectionsMapping, MutableMapping, Callable
+from dataclasses import dataclass, field
 
 import logging
 logger = logging.getLogger()
+
+
+@dataclass
+class MethodSettings:
+    # class
+    cls: object
+    # name function for running
+    func_name: str
+    # name command
+    name: str
+    # marshmallow schema for validation params
+    schema: object = field(default=None)
+    # is deprecated method
+    deprecated: bool = field(default=None)
 
 
 class Dispatcher(MutableMapping):
@@ -106,7 +121,7 @@ class Dispatcher(MutableMapping):
 
         self.update(Dispatcher._extract_methods(cls, prefix=prefix))
 
-    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None, schema = None) -> None:
+    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None, schema = None, deprecated: bool = None) -> None:
         """
         schema: marshmallow.Schema for validation params
         """
@@ -117,11 +132,12 @@ class Dispatcher(MutableMapping):
         method = f'{prefix}{func_name}'
         logger.debug(f'{self.__class__.__name__}::add_class_method: msg=add method, name={method}')
 
-        self[method] = dict(
+        self[method] = MethodSettings(
             cls=cls,
             func_name=func_name,
             schema=schema,
             name=method,
+            deprecated=deprecated,
         )
 
     def add_object(self, obj: Any, prefix: Optional[str] = None) -> None:
