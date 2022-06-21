@@ -109,7 +109,7 @@ class AsyncJSONRPCResponseManager:
                 output = JSONRPC20Response(result=result, error=error, id=response_id)
 
         # result log
-        logger.debug(f'{__name__}: name={request.method}, output={output.__class__.__name__} {bool(output.result)} {bool(output.error)}')
+        logger.info(f'{__name__}: name={request.method}, output={output.__class__.__name__} {bool(output.result)} {bool(output.error)}, {response_id}')
 
         if not request.is_notification:
             return output
