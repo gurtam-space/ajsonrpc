@@ -30,6 +30,7 @@ class AsyncJSONRPCResponseManager:
         """Get response for an individual request."""
         output = None
         response_id = request.id if not request.is_notification else None
+        log_prefix = f'{__name__}::get_response_for_request'
         try:
             method = self.dispatcher[request.method]
         except KeyError:
@@ -44,7 +45,7 @@ class AsyncJSONRPCResponseManager:
                 if isinstance(method, MethodSettings):
                     # deprecated log
                     if method.deprecated:
-                        logger.warning(f'{__name__}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
+                        logger.warning(f'{log_prefix}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
                     # validate params
                     if method.schema:
                         validation_errors = request.validate_params(method.schema)
@@ -87,6 +88,12 @@ class AsyncJSONRPCResponseManager:
                 )
 
             except Exception as e:
+                logger.error(
+                    f'{log_prefix}: name={request.method}, output={output.__class__.__name__}, {response_id=}',
+                    exc_info=e,
+                    extra=dict(
+                        extra_data=request.extra_data
+                    ))
                 # TODO: fix check is_invalid_params
                 if 1 == 2 and is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
@@ -109,7 +116,13 @@ class AsyncJSONRPCResponseManager:
                 output = JSONRPC20Response(result=result, error=error, id=response_id)
 
         # result log
-        logger.info(f'{__name__}: name={request.method}, output={output.__class__.__name__} {bool(output.result)} {bool(output.error)}, {response_id}')
+        res_txt = ''
+        if output.result:
+            res_txt = 'SUCCESS'
+        if output.error:
+            res_txt = 'ERROR'
+        logger.info(f'{log_prefix}: msg={res_txt}, name={request.method}, output={output.__class__.__name__}, '
+                    f'cid={request.extra_data.get("cid")}, {response_id}')
 
         if not request.is_notification:
             return output
