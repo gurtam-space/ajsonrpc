@@ -77,6 +77,13 @@ class AsyncJSONRPCResponseManager:
                 )
 
             except PermissionError as e:
+                logger.error(
+                    f'{log_prefix}: name={request.method}, msg={type(e)}, output={output.__class__.__name__}, {response_id=}',
+                    exc_info=e,
+                    extra=dict(
+                        extra_data=request.extra_data
+                    ))
+
                 output = JSONRPC20Response(
                     error=JSONRPC20InvalidRequest(
                         data=[{
@@ -89,7 +96,7 @@ class AsyncJSONRPCResponseManager:
 
             except Exception as e:
                 logger.error(
-                    f'{log_prefix}: name={request.method}, output={output.__class__.__name__}, {response_id=}',
+                    f'{log_prefix}: name={request.method}, msg={type(e)}, output={output.__class__.__name__}, {response_id=}',
                     exc_info=e,
                     extra=dict(
                         extra_data=request.extra_data
