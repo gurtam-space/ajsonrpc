@@ -9,11 +9,12 @@ from .common import CommonBackend
 
 
 class JSONRPCAiohttp(CommonBackend):
-    def __init__(self, auth_callback=None, **kwargs):
+    def __init__(self, auth_callback=None, finish_callback=None, **kwargs):
         super().__init__(**kwargs)
         # return (int - response.status value, dict - auth_data for handlers)
         # if status != 200 - return empty response with status !200
         self.auth_callback = auth_callback
+        self.finish_callback = finish_callback
 
     @property
     def handler(self):
@@ -33,7 +34,7 @@ class JSONRPCAiohttp(CommonBackend):
             # -- go to json-rpc methods
             if resp_status == 200:
                 txt = await request.text()
-                rpc_resp = await self.manager.get_response_for_payload(txt, extra_data)
+                rpc_resp = await self.manager.get_response_for_payload(txt, extra_data, self.finish_callback)
                 if rpc_resp:
                     resp = Response(body=json.dumps(rpc_resp.body), content_type="application/json")
             else:

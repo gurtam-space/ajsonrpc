@@ -527,6 +527,16 @@ class JSONRPC20Response:
         self._body = {}  # init body
         self.body = response_body
 
+        self._request = None    # type: JSONRPC20Request
+
+    @property
+    def request(self) -> Optional[JSONRPC20Request]:
+        return self._request
+
+    @request.setter
+    def request(self, value: JSONRPC20Request):
+        self._request = value
+
     @property
     def body(self):
         return self._body

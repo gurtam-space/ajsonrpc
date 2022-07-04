@@ -29,7 +29,7 @@ class AsyncJSONRPCResponseManager:
     async def get_response_for_request(self, request: JSONRPC20Request) -> Optional[JSONRPC20Response]:
         """Get response for an individual request."""
         output = None
-        response_id = request.id if not request.is_notification else None
+        response_id = request.id or None
         log_prefix = f'{__name__}::get_response_for_request'
         try:
             method = self.dispatcher[request.method]
@@ -131,8 +131,9 @@ class AsyncJSONRPCResponseManager:
         logger.info(f'{log_prefix}: msg={res_txt}, name={request.method}, output={output.__class__.__name__}, '
                     f'cid={request.extra_data.get("cid")}, {response_id}')
 
-        if not request.is_notification:
-            return output
+        output.request = request
+
+        return output
 
     async def get_response_for_request_body(self, request_body, extra_data: dict = None) -> Optional[JSONRPC20Response]:
         """Catch parse error as well"""
@@ -144,7 +145,8 @@ class AsyncJSONRPCResponseManager:
         else:
             return await self.get_response_for_request(request)
 
-    async def get_response_for_payload(self, payload: str, extra_data: dict = None) -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
+    async def get_response_for_payload(self, payload: str, extra_data: dict = None, finish_callback = None)\
+            -> Optional[Union[JSONRPC20Response, JSONRPC20BatchResponse]]:
         """Top level handler
 
         NOTE: top level handler, accepts string payload.
@@ -167,7 +169,23 @@ class AsyncJSONRPCResponseManager:
             self.get_response_for_request_body(request_body, extra_data=copy.copy(extra_data))
             for request_body in requests_bodies
         ])
-        nonempty_responses = [r for r in responses if r is not None]
+
+        # nonempty_responses = [r for r in responses if r is not None]
+        nonempty_responses = []
+        for r in responses: # type: JSONRPC20Response
+            if not r.request.is_notification:
+                nonempty_responses.append(r)
+
+        # run finish callback, example - logger
+        if finish_callback:
+            try:
+                if inspect.iscoroutinefunction(finish_callback):
+                    asyncio.ensure_future(finish_callback(responses))
+                else:
+                    finish_callback(responses)
+            except Exception as e:
+                logger.error(f'{__name__}::get_response_for_payload: msg=fail running finish_callback {e=}', exc_info=e)
+
         if is_batch_request:
             if len(nonempty_responses) > 0:
                 return JSONRPC20BatchResponse(nonempty_responses)
