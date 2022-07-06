@@ -126,7 +126,7 @@ class Application(AiohttpApplication):
                         # if token_key:
                         if token_key := request.headers.get(get_auth_header_name(self)):
                             try:
-                                auth_data = self.auth_data_getter(token_key)
+                                auth_data = self.auth_data_getter(request, token_key)
                             except Exception as e:
                                 logger.error(f'{logger_prefix}: msg=fail execute auth_data_getter, {e=}')
                                 # resp = HTTPInternalServerError(reason='Fail authorization')

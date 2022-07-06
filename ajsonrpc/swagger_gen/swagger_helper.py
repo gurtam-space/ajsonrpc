@@ -6,6 +6,8 @@ from os.path import abspath, dirname, join
 from aiohttp.hdrs import METH_POST
 from marshmallow import fields
 
+from ..dispatcher import MethodSettings
+
 import logging
 logger = logging.getLogger()
 
@@ -130,12 +132,12 @@ def generate_swagger_info(
     tag_names = []
     schemas = {}
 
-    for method_cfg in routes:    # type: dict
+    for method_cfg in routes:    # type: MethodSettings
         # -- method data
-        handler_cls = method_cfg['cls']
-        func_name = method_cfg['func_name']
-        schema = method_cfg.get('schema')
-        method_name = method_cfg.get('name')
+        handler_cls = method_cfg.cls
+        func_name = method_cfg.func_name
+        schema = method_cfg.schema
+        method_name = method_cfg.name
 
         route_path = f'{path}#{method_name}'
 

@@ -1,3 +1,4 @@
+import aiohttp.web_request
 from aiohttp.web_request import Request
 try:
     from spaceapi import SpaceApiClient
@@ -17,8 +18,28 @@ class ACCESS_LVL:
     SPACE = 30
 
 
+# get fleet data
+async def get_fleet_data(cid: str) -> dict:
+    assert SpaceApiClient
+    data, errs = await SpaceApiClient().sun_state.one_request(
+        SpaceApiClient().sun_state.methods.dstate['search_by_key'],
+        dict(
+            entity='fleet',
+            key=cid,
+            fields=['id', 'access_lvl']
+        )
+    )
+    if errs:
+        logger.error(f'{__name__}::get_fleet_data: msg=fail getting, {cid=}, {errs=}')
+
+    return dict(
+        id=data['id'],
+        access_lvl=data['access_lvl'],
+    ) if data else {}
+
+
 # get auth data by token.key
-async def get_auth_data(key: str) -> dict:
+async def get_token_data(key: str) -> dict:
     assert SpaceApiClient
     token_data, errs = await SpaceApiClient().sun_state.one_request(
         SpaceApiClient().sun_state.methods.dstate['search'],
@@ -30,7 +51,7 @@ async def get_auth_data(key: str) -> dict:
         )
     )
     if errs:
-        logger.error(f'get_auth_data: msg=fail getting token, {key=}, {errs=}')
+        logger.error(f'get_token_data: msg=fail getting token, {key=}, {errs=}')
 
     return dict(
         cid=token_data['cid'],
@@ -43,22 +64,79 @@ async def get_auth_data(key: str) -> dict:
     ) if token_data else {}
 
 
+# get auth data by token.key
+async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LVL.FLEET) -> dict:
+    assert SpaceApiClient
+    # TODO: add cache
+    token_data = await get_token_data(key)
+
+    result = dict()
+    if token_data:
+        cid = token_data['cid']
+        access_lvl = token_data['access_lvl']
+        app_id = token_data['app_id']
+
+        if allowed_lvl:
+            if access_lvl < allowed_lvl:
+                raise PermissionError()
+
+            # request with tsp/space token
+            if access_lvl > allowed_lvl:
+                # app_id
+                if _app_id := request.headers.get('X-AppId'):
+                    app_id = _app_id
+
+                if _cid := request.headers.get('X-Cid'):
+                    _cid = int(_cid)
+                    # check on fleet lvl
+                    fleet_data = await get_fleet_data(_cid)
+                    _access_lvl = fleet_data.get('access_lvl') or 0
+
+                    if access_lvl <= _access_lvl or _access_lvl < allowed_lvl:
+                        logger.error(
+                            f'{log_prefix}: msg=bad force command, {cid=}, {app_id=}, {token_id=}, {access_lvl=}, {_access_lvl=}')
+                        raise PermissionError()
+
+                    cid = _cid
+                    access_lvl = _access_lvl
+
+        result = dict(
+            request_cid=token_data['cid'],
+            request_access_lvl=token_data['access_lvl'],
+            token_id=token_data['token_id'],
+            cid=cid,
+            access_lvl=access_lvl,
+            app_id=app_id,
+            subscription_id=subscription.get('subscription_id') or None if (subscription := token_data.get('subscription')) else None,
+            token_key=key,
+            store=bool(token_data.get('store'))
+        )
+    return result
+
+
 # base auth-callback for JSONRPCAiohttp
-async def auth_cbck_base(request: Request, access_lvl: int = None) -> (int, dict):
+async def auth_cbck_base(request: Request, allowed_lvl: int = None) -> (int, dict):
     code, extra_data = 401, {}
+    log_prefix = f'{__name__}::auth_cbck_base'
 
     # -- get data by token
+    # auth data from aiohttp-request
     extra_data = request.get('extra_data', {})
+    # or get auth data by token
     if not extra_data:
         if token_key := request.headers.get(get_auth_header_name(request.app)):
-            extra_data = await get_auth_data(token_key)
+            extra_data = await get_auth_data(request, token_key, allowed_lvl)
+
+    access_lvl = extra_data.get('access_lvl')
+    if allowed_lvl and access_lvl < allowed_lvl:
+        return code, extra_data
 
     # -- check access=lvl
     if extra_data:
-        if not access_lvl or extra_data['access_lvl'] == access_lvl:
+        if not allowed_lvl or access_lvl == allowed_lvl:
             code = 200
         else:
-            logger.warning(f'auth_cbck_base: msg=token-acl is not allowed, {access_lvl=}, {extra_data=}')
+            logger.warning(f'{log_prefix}: msg=token-acl is not allowed, {allowed_lvl=}, {extra_data=}')
 
     # -- check auth, return http-code and extra_data for rpc-handlers
     return code, extra_data
