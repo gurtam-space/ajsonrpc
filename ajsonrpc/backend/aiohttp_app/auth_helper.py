@@ -47,7 +47,7 @@ async def get_token_data(key: str) -> dict:
             entity='token',
             c=[['key', key, 'eq']],
             count=1,
-            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'store']
+            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store']
         )
     )
     if errs:
@@ -58,11 +58,12 @@ async def get_token_data(key: str) -> dict:
         token_id=token_data['id'],
         access_lvl=token_data['access_lvl'],
         app_id=token_data['info'].get('app_id') or None,
+        # deprecated field
         subscription_id=subscription.get('subscription_id') or None if (subscription := token_data.get('subscription')) else None,
+        subscriptions=token_data.get('subscriptions'),
         token_key=key,
         store=bool(token_data.get('store'))
     ) if token_data else {}
-
 
 # get auth data by token.key
 async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LVL.FLEET) -> dict:
@@ -100,6 +101,12 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
                     cid = _cid
                     access_lvl = _access_lvl
 
+        # get subscription_id
+        subscription_id = None
+        if app_id and (subscrs := token_data.get('subscriptions')):
+            if subscr := subscrs.get(app_id):
+                subscription_id = subscr.get('subscription_id')
+
         result = dict(
             request_cid=token_data['cid'],
             request_access_lvl=token_data['access_lvl'],
@@ -107,7 +114,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             cid=cid,
             access_lvl=access_lvl,
             app_id=app_id,
-            subscription_id=subscription.get('subscription_id') or None if (subscription := token_data.get('subscription')) else None,
+            subscription_id=subscription_id,
             token_key=key,
             store=bool(token_data.get('store'))
         )
