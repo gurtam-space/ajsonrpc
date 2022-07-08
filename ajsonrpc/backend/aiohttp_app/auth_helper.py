@@ -83,7 +83,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 
             # request with tsp/space token
             if access_lvl > allowed_lvl:
-                # app_id
+                # app_id TODO: check if app exists (by app_id from header)
                 if _app_id := request.headers.get('X-AppId'):
                     app_id = _app_id
 
