@@ -127,7 +127,7 @@ class AsyncJSONRPCResponseManager:
         if output.result:
             res_txt = 'SUCCESS'
         if output.error:
-            res_txt = 'ERROR'
+            res_txt = f'ERROR [{output.error.code}, {output.error.message}]'
         logger.info(f'{log_prefix}: msg={res_txt}, name={request.method}, output={output.__class__.__name__}, '
                     f'cid={request.extra_data.get("cid")}, {response_id}')
 
