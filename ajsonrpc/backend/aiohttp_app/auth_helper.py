@@ -38,6 +38,26 @@ async def get_fleet_data(cid: str) -> dict:
     ) if data else {}
 
 
+# get tsp data
+async def get_tsp_data(cid: str) -> dict:
+    assert SpaceApiClient
+    data, errs = await SpaceApiClient().sun_state.one_request(
+        SpaceApiClient().sun_state.methods.dstate['search_by_key'],
+        dict(
+            entity='tsp',
+            key=cid,
+            fields=['id', 'access_lvl']
+        )
+    )
+    if errs:
+        logger.error(f'{__name__}::get_tsp_data: msg=fail getting, {cid=}, {errs=}')
+
+    return dict(
+        id=data['id'],
+        access_lvl=data['access_lvl'],
+    ) if data else {}
+
+
 # get auth data by token.key
 async def get_token_data(key: str) -> dict:
     assert SpaceApiClient
@@ -89,9 +109,9 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 
                 if _cid := request.headers.get('X-Cid'):
                     _cid = int(_cid)
-                    # check on fleet lvl
-                    fleet_data = await get_fleet_data(_cid)
-                    _access_lvl = fleet_data.get('access_lvl') or 0
+                    # check on fleet or tsp lvl
+                    acc_data = await get_fleet_data(_cid) or await get_tsp_data(_cid)
+                    _access_lvl = acc_data.get('access_lvl') or 0
 
                     if access_lvl <= _access_lvl or _access_lvl < allowed_lvl:
                         logger.error(
