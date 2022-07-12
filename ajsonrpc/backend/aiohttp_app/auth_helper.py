@@ -115,7 +115,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 
                     if access_lvl <= _access_lvl or _access_lvl < allowed_lvl:
                         logger.error(
-                            f'{log_prefix}: msg=bad force command, {cid=}, {app_id=}, {token_id=}, {access_lvl=}, {_access_lvl=}')
+                            f'get_auth_data: msg=bad force command, {cid=}, {app_id=}, token_id={token_data["id"]}, {access_lvl=}, {_access_lvl=}')
                         raise PermissionError()
 
                     cid = _cid
