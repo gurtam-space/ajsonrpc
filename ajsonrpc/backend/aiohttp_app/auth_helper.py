@@ -130,6 +130,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
         result = dict(
             request_cid=token_data['cid'],
             request_access_lvl=token_data['access_lvl'],
+            request_app_id=token_data['app_id'],
             token_id=token_data['token_id'],
             cid=cid,
             access_lvl=access_lvl,
