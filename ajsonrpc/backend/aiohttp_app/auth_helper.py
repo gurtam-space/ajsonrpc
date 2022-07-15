@@ -110,6 +110,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
                 if _cid := request.headers.get('X-Cid'):
                     _cid = int(_cid)
                     # check on fleet or tsp lvl
+                    # TODO: merge to one request. what?
                     acc_data = await get_fleet_data(_cid) or await get_tsp_data(_cid)
                     _access_lvl = acc_data.get('access_lvl') or 0
 
@@ -144,6 +145,10 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 
 # base auth-callback for JSONRPCAiohttp
 async def auth_cbck_base(request: Request, allowed_lvl: int = None) -> (int, dict):
+    return await jsonrpc_auth_cbck(request, allowed_lvl)
+
+# auth callback for jsonrpc2
+async def jsonrpc_auth_cbck(request: Request, allowed_lvl: int = None) -> (int, dict):
     code, extra_data = 401, {}
     log_prefix = f'{__name__}::auth_cbck_base'
 
