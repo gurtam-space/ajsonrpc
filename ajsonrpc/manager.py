@@ -173,7 +173,7 @@ class AsyncJSONRPCResponseManager:
         # nonempty_responses = [r for r in responses if r is not None]
         nonempty_responses = []
         for r in responses: # type: JSONRPC20Response
-            if not r.request.is_notification:
+            if not r.request or not r.request.is_notification:
                 nonempty_responses.append(r)
 
         # run finish callback, example - logger
