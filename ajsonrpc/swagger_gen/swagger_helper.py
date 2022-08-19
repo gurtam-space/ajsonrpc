@@ -32,8 +32,20 @@ def get_data_type(param_field):
     if isinstance(param_field, fields.Integer):
         return 'integer'
 
+    if isinstance(param_field, fields.Float):
+        return 'number'
+
+    if isinstance(param_field, fields.Boolean):
+        return 'boolean'
+
     if isinstance(param_field, fields.List):
         return 'array'
+
+    if isinstance(param_field, fields.Dict):
+        return 'object'
+
+    if isinstance(param_field, fields.Nested):
+        return 'nested'
 
     return 'string'
 
@@ -65,6 +77,12 @@ def get_schema_props(schema_fields) -> (dict, list):
                 obj['items'] = {
                     'type': get_data_type(param_field.container)
                 }
+
+            if data_type == 'nested':
+                obj['type'] = 'object'
+                pr, req = get_schema_props(param_field.nested.fields)
+                obj['properties'] = pr
+                obj['required'] = req
 
             schema_props[param_field.name] = obj
     return schema_props, required_names
@@ -113,7 +131,7 @@ def generate_swagger_info(
         security=[],
         tags=[]
     )
-
+    print(23423)
     # if isset access-token - add header
     if auth_header_name:
         result['components']['securitySchemes'] = {
@@ -132,7 +150,7 @@ def generate_swagger_info(
     tag_names = []
     schemas = {}
 
-    for method_cfg in routes:    # type: MethodSettings
+    for method_cfg in routes:  # type: MethodSettings
         # -- method data
         handler_cls = method_cfg.cls
         func_name = method_cfg.func_name
@@ -154,7 +172,6 @@ def generate_swagger_info(
         # -- class method docstring
         method_docstring = getattr(handler_cls, func_name).__doc__ or ''
         split_docstring = list(map(lambda str: str.strip(), method_docstring.split(DOCSTRING_SEPARATOR, 2)))
-
 
         end_point_doc_by_method = {
             'tags': [handler_cls.__name__],
