@@ -161,7 +161,7 @@ async def jsonrpc_auth_cbck(request: Request, allowed_lvl: int = None) -> (int, 
             extra_data = await get_auth_data(request, token_key, allowed_lvl)
 
     access_lvl = extra_data.get('access_lvl')
-    if allowed_lvl and access_lvl < allowed_lvl:
+    if allowed_lvl and (not access_lvl or access_lvl < allowed_lvl):
         return code, extra_data
 
     # -- check access=lvl
