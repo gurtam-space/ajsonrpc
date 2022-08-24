@@ -67,7 +67,7 @@ async def get_token_data(key: str) -> dict:
             entity='token',
             c=[['key', key, 'eq']],
             count=1,
-            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store']
+            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store', 'country']
         )
     )
     if errs:
@@ -82,8 +82,10 @@ async def get_token_data(key: str) -> dict:
         subscription_id=subscription.get('subscription_id') or None if (subscription := token_data.get('subscription')) else None,
         subscriptions=token_data.get('subscriptions'),
         token_key=key,
-        store=bool(token_data.get('store'))
+        store=bool(token_data.get('store')),
+        country=token_data.get('country') or None,
     ) if token_data else {}
+
 
 # get auth data by token.key
 async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LVL.FLEET) -> dict:
@@ -138,7 +140,9 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             app_id=app_id,
             subscription_id=subscription_id,
             token_key=key,
-            store=bool(token_data.get('store'))
+            store=bool(token_data.get('store')),
+            country=token_data.get('country'),
+            ip=request.headers.get('X-Real-IP') or request.remote,
         )
     return result
 
@@ -146,6 +150,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 # base auth-callback for JSONRPCAiohttp
 async def auth_cbck_base(request: Request, allowed_lvl: int = None) -> (int, dict):
     return await jsonrpc_auth_cbck(request, allowed_lvl)
+
 
 # auth callback for jsonrpc2
 async def jsonrpc_auth_cbck(request: Request, allowed_lvl: int = None) -> (int, dict):
