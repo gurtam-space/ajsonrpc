@@ -142,7 +142,6 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             token_key=key,
             store=bool(token_data.get('store')),
             country=token_data.get('country'),
-            ip=request.headers.get('X-Real-IP') or request.remote,
         )
     return result
 
