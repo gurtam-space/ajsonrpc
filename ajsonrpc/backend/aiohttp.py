@@ -33,7 +33,11 @@ class JSONRPCAiohttp(CommonBackend):
 
             # -- go to json-rpc methods
             if resp_status == 200:
+                extra_data['_ip'] = request.headers.get('X-Real-IP') or request.remote
+                extra_data['_id'] = id(request)
+
                 txt = await request.text()
+
                 rpc_resp = await self.manager.get_response_for_payload(txt, extra_data, self.finish_callback)
                 if rpc_resp:
                     resp = Response(body=json.dumps(rpc_resp.body), content_type="application/json")
