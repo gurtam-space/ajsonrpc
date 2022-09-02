@@ -7,6 +7,7 @@ from .web_app import Application, run_app
 from .aiohttp_controller import BaseHttpController
 from .jsonrpc2_controller import BaseJSONRPC20Controller
 from .jsonrpc2_model import BaseJSONRPC20Model
+from .jsonrpc2_installer import ApiCfg, install_jsonrpc2_apis
 
 # __all__ = [
 #     'Application', 'run_app',

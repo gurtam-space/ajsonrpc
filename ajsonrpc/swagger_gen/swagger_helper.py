@@ -89,6 +89,7 @@ def get_schema_props(schema_fields) -> (dict, list):
 
 
 # create dict with Swagger data
+# contact example: {name: str, url: str, email: str}
 def generate_swagger_info(
         routes: list,
         path: str,
@@ -97,7 +98,7 @@ def generate_swagger_info(
         auth_header_name: str,
         title: str,
         hosts: list,
-        contact: dict,
+        contact: dict = None,
 ) -> dict:
     # Load base Swagger template
     # with open(join(SWAGGER_TEMPLATE, "swagger.json"), "r") as f:
