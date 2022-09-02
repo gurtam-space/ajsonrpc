@@ -20,7 +20,7 @@ logger = logging.getLogger()
 
 
 # generate json-file for swagger
-def get_swagger_info(request: Request, api_app: JSONRPCAiohttp, path: str, title: str, contact: dict = None):
+def get_swagger_info(request: Request, api_app: JSONRPCAiohttp, path: str, title: str):
     result = json_response(
         data=generate_swagger_info(
             routes=api_app.manager.dispatcher.values(),
@@ -30,7 +30,6 @@ def get_swagger_info(request: Request, api_app: JSONRPCAiohttp, path: str, title
             auth_header_name='X-AccessToken',
             title=title,
             hosts=[f'https://{request.host}', f'http://{request.host}'],
-            contact=contact,
         ),
         dumps=json.dumps
     )
@@ -55,9 +54,6 @@ def add_jsonrpc_json_handler(web_app: Application, api_path: str, dispatcher: Di
 
         return json_response(data=methods)
 
-    """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !!!   not change the path  !!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
     return web_app.router.add_route(METH_GET,  f'{api_path}/jsonrpc/2.0/json', _handler)
 
 
@@ -69,12 +65,16 @@ class ApiCfg:
     methods: list
     auth_callback: Callable = None
     finish_callback: Callable = None
+    # add route for getting json with all methods
+    api_json: bool = True
+    # add route for getting json-config for swagger
+    swagger: bool = True
 
 
 def install_jsonrpc2_apis(web_app: Application, apis: [ApiCfg]) -> list:
     result = []
 
-    for api_cfg in apis:
+    for api_cfg in apis:    # type: ApiCfg
         # create jsonrpc api
         api = JSONRPCAiohttp(auth_callback=api_cfg.auth_callback, finish_callback=api_cfg.finish_callback)
         [api.manager.dispatcher.add_class_method(**method_data) for method_data in api_cfg.methods]
@@ -83,17 +83,16 @@ def install_jsonrpc2_apis(web_app: Application, apis: [ApiCfg]) -> list:
         web_app.router.add_route(METH_POST,     api_cfg.path,       api.handler)
 
         # add handler for getting all methods (json)
-        add_jsonrpc_json_handler(web_app=web_app, api_path=api_cfg.path, dispatcher=api.manager.dispatcher)
+        if api_cfg.api_json:
+            add_jsonrpc_json_handler(web_app=web_app, api_path=api_cfg.path, dispatcher=api.manager.dispatcher)
 
         # add handler for getting swagger config
-        """!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        !!!   not change the path  !!!
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"""
-        web_app.router.add_route(
-            METH_GET,
-            f'/docs{api_cfg.path}/json',
-            lambda request: get_swagger_info(request, api, api_cfg.path, api_cfg.title)
-        )
+        if api_cfg.swagger:
+            web_app.router.add_route(
+                METH_GET,
+                f'/docs{api_cfg.path}/json',
+                lambda request: get_swagger_info(request, api, api_cfg.path, api_cfg.title)
+            )
 
         result.append(api)
 
