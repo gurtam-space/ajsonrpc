@@ -23,21 +23,11 @@ logger = logging.getLogger()
 SWAGGER_CFGS = {}
 
 
-# generate json-file for swagger
-def get_swagger_info(api_app: JSONRPCAiohttp, path: str, title: str):
-    result = json_response(
-        data=generate_swagger_info(
-            routes=api_app.manager.dispatcher.values(),
-            path=path,
-            description='',
-            api_version='0.1.0',
-            auth_header_name='X-AccessToken',
-            title=title,
-            hosts=[],
-        ),
-        dumps=json.dumps
+def swagger_handler(request):
+    return json_response(
+        data=SWAGGER_CFGS[request.path],
+        dumps=json.dumps,
     )
-    return result
 
 
 def add_jsonrpc_json_handler(web_app: Application, api_path: str, dispatcher: Dispatcher):
@@ -93,12 +83,20 @@ def install_jsonrpc2_apis(web_app: Application, apis: [ApiCfg]) -> list:
         # add handler for getting swagger config
         if api_cfg.swagger:
             path = f'/docs{api_cfg.path}/json'
-            SWAGGER_CFGS[path] = get_swagger_info(api, api_cfg.path, api_cfg.title)
+            SWAGGER_CFGS[path] = generate_swagger_info(
+                routes=api.manager.dispatcher.values(),
+                path=api_cfg.path,
+                description='',
+                api_version='0.1.0',
+                auth_header_name='X-AccessToken',
+                title=api_cfg.title,
+                hosts=[],
+            )
 
             web_app.router.add_route(
                 METH_GET,
                 path,
-                lambda request: SWAGGER_CFGS[request.path]
+                swagger_handler
             )
 
         result.append(api)
