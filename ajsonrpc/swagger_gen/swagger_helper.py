@@ -132,7 +132,7 @@ def generate_swagger_info(
         security=[],
         tags=[]
     )
-    print(23423)
+
     # if isset access-token - add header
     if auth_header_name:
         result['components']['securitySchemes'] = {

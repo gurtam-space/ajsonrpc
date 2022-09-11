@@ -24,8 +24,11 @@ SWAGGER_CFGS = {}
 
 
 def swagger_handler(request):
+    data = SWAGGER_CFGS[request.path].copy()
+    hosts = [f'https://{request.host}', f'http://{request.host}']
+    data['servers'] = [dict(url=addr) for addr in hosts]
     return json_response(
-        data=SWAGGER_CFGS[request.path],
+        data=data,
         dumps=json.dumps,
     )
 
