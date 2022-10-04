@@ -67,7 +67,7 @@ async def get_token_data(key: str) -> dict:
             entity='token',
             c=[['key', key, 'eq']],
             count=1,
-            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store', 'country']
+            fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store', 'country', 'td']
         )
     )
     if errs:
@@ -84,6 +84,8 @@ async def get_token_data(key: str) -> dict:
         token_key=key,
         store=bool(token_data.get('store')),
         country=token_data.get('country') or None,
+        # is dealer
+        td=bool(token_data.get('td')),
     ) if token_data else {}
 
 
@@ -142,6 +144,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             token_key=key,
             store=bool(token_data.get('store')),
             country=token_data.get('country'),
+            td=token_data.get('td'),
         )
     return result
 
