@@ -46,6 +46,21 @@ class AsyncJSONRPCResponseManager:
                     # deprecated log
                     if method.deprecated:
                         logger.warning(f'{log_prefix}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
+
+                    # check ACL
+                    if method.acl:
+                        # { module_name: allowed_acl_value, }
+                        if user_acl := request.extra_data.get('user_acl'):
+                            for module_name in user_acl:
+                                if module_name in method.acl:
+                                    if user_acl[module_name] & method.acl[module_name] == method.acl[module_name]:
+                                        break
+                                    else:
+                                        raise PermissionError('Method is forbidden')
+                            else:
+                                raise PermissionError('Method is forbidden')
+
+
                     # validate params
                     if method.schema:
                         validation_errors = request.validate_params(method.schema)
@@ -77,30 +92,24 @@ class AsyncJSONRPCResponseManager:
                 )
 
             except PermissionError as e:
-                logger.error(
-                    f'{log_prefix}: name={request.method}, msg={type(e)}, output={output.__class__.__name__}, {response_id=}',
-                    exc_info=e,
-                    extra=dict(
-                        extra_data=request.extra_data
-                    ))
-
                 output = JSONRPC20Response(
                     error=JSONRPC20InvalidRequest(
                         data=[{
-                            "selector": e.__class__.__name__,
+                            "selector": 'permission',
+                            "value": e.__class__.__name__,
                             "reason": str(e),
                         }]
                     ),
                     id=response_id
                 )
-
-            except Exception as e:
                 logger.error(
                     f'{log_prefix}: name={request.method}, msg={type(e)}, output={output.__class__.__name__}, {response_id=}',
                     exc_info=e,
                     extra=dict(
                         extra_data=request.extra_data
                     ))
+
+            except Exception as e:
                 # TODO: fix check is_invalid_params
                 if 1 == 2 and is_invalid_params(method, *request.args, **request.kwargs):
                     # Method's parameters are incorrect
@@ -119,6 +128,13 @@ class AsyncJSONRPCResponseManager:
                         ),
                         id=response_id
                     )
+                logger.error(
+                    f'{log_prefix}: name={request.method}, msg={type(e)}, output={output.__class__.__name__}, {response_id=}',
+                    exc_info=e,
+                    extra=dict(
+                        extra_data=request.extra_data
+                    ))
+
             else:
                 output = JSONRPC20Response(result=result, error=error, id=response_id)
 

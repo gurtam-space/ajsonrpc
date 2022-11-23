@@ -27,6 +27,9 @@ class MethodSettings:
     schema: object = field(default=None)
     # is deprecated method
     deprecated: bool = field(default=None)
+    # acl schema, example: { module_name: min_lvl, }
+    # check with request.extra_data['user_acl'], user acl example: { module_name: access_lvl, }
+    acl: dict = field(default=None)
 
 
 class Dispatcher(MutableMapping):
@@ -121,7 +124,7 @@ class Dispatcher(MutableMapping):
 
         self.update(Dispatcher._extract_methods(cls, prefix=prefix))
 
-    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None, schema = None, deprecated: bool = None) -> None:
+    def add_class_method(self, cls: Any, func_name: str, prefix: Optional[str] = None, schema = None, acl: dict = None, deprecated: bool = None) -> None:
         """
         schema: marshmallow.Schema for validation params
         """
@@ -136,6 +139,7 @@ class Dispatcher(MutableMapping):
             cls=cls,
             func_name=func_name,
             schema=schema,
+            acl=acl,
             name=method,
             deprecated=deprecated,
         )
