@@ -650,3 +650,14 @@ class JSONRPC20InvalidParamsException(JSONRPC20Exception):
     def __init__(self, data=None, *args, **kwargs):
         super().__init__(args, kwargs)
         self.error = JSONRPC20InvalidParams(data=data)
+
+
+class JSONRPC20InvalidResultException(JSONRPC20Exception):
+
+    """JSON-RPC Invalid result Exception for dispatcher methods."""
+
+    def __init__(self, data=None, method=None, invalid_data=None, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.method = method
+        self.invalid_data = invalid_data
+        self.error = JSONRPC20InvalidParams(data=data)

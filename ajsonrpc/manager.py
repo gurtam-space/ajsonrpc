@@ -9,9 +9,10 @@ from .core import (
     JSONRPC20BatchResponse, JSONRPC20MethodNotFound, JSONRPC20InvalidParams,
     JSONRPC20ServerError, JSONRPC20ParseError, JSONRPC20InvalidRequest,
     JSONRPC20DispatchException, JSONRPC20InvalidParamsException,
+    JSONRPC20InvalidResultException,
 )
 from .dispatcher import Dispatcher, MethodSettings
-from .utils import is_invalid_params
+from .utils import is_invalid_params, validate_by_schema
 
 import logging
 logger = logging.getLogger()
@@ -43,6 +44,7 @@ class AsyncJSONRPCResponseManager:
             try:
                 # controller - class with method
                 if isinstance(method, MethodSettings):
+                    method_settings = method
                     # deprecated log
                     if method.deprecated:
                         logger.warning(f'{log_prefix}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
@@ -66,12 +68,30 @@ class AsyncJSONRPCResponseManager:
                         validation_errors = request.validate_params(method.schema)
                         if validation_errors:
                             raise JSONRPC20InvalidParamsException(data=validation_errors)
+
                     # run methods
                     obj = method.cls(request)
                     method = getattr(obj, method.func_name)
                     result, error = await method() \
                         if inspect.iscoroutinefunction(method) \
                         else method()   # type: JSONRPC20Response
+
+                    # validate result
+                    if result and method_settings.response_schema:
+                        if isinstance(result, list):
+                            v_result = []
+                            for res_item in result:
+                                v_res_item, validation_errors = validate_by_schema(method_settings.response_schema, res_item)
+                                if validation_errors:
+                                    raise JSONRPC20InvalidResultException(data=validation_errors, invalid_data=res_item, method=method_settings.name)
+                                v_result.append(v_res_item)
+                            else:
+                                result = v_result
+                        else:
+                            result, validation_errors = validate_by_schema(method_settings.response_schema, result)
+                            if validation_errors:
+                                raise JSONRPC20InvalidResultException(data=validation_errors, invalid_data=result, method=method_settings.name)
+
                 # controller - function or object with method
                 else:
                     result, error = await method(request) \
@@ -81,6 +101,18 @@ class AsyncJSONRPCResponseManager:
             except JSONRPC20InvalidParamsException as dispatch_error:
                 output = JSONRPC20Response(
                     error=dispatch_error.error,
+                    id=response_id
+                )
+
+            except JSONRPC20InvalidResultException as e:
+                logger.error(f'{log_prefix}: msg=result is not valid by response schema, method={e.method}', exc_info=e, extra=dict(
+                    method=method,
+                    method_name=e.method,
+                    error=e.error.data,
+                    invalid_data=e.invalid_data,
+                ))
+                output = JSONRPC20Response(
+                    error=JSONRPC20ServerError(),
                     id=response_id
                 )
 
