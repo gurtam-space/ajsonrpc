@@ -74,9 +74,18 @@ def get_schema_props(schema_fields) -> (dict, list):
 
             # add items property if type is array
             if data_type == 'array':
-                obj['items'] = {
-                    'type': get_data_type(param_field.container)
-                }
+                item_type = get_data_type(param_field.container)
+                if item_type == 'nested':
+                    pr, req = get_schema_props(param_field.container.schema.fields)
+                    obj['items'] = {
+                        'type': 'object',
+                        'properties': pr,
+                        'required': req
+                    }
+                else:
+                    obj['items'] = {
+                        'type': item_type
+                    }
 
             if data_type == 'nested':
                 obj['type'] = 'object'
