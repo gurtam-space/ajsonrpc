@@ -50,17 +50,21 @@ class AsyncJSONRPCResponseManager:
                         logger.warning(f'{log_prefix}: msg=method is deprecated, name={method.name}, func_name={method.func_name}')
 
                     # check ACL
-                    if method.acl:
+                    if method.acl or method.acl_func:
                         # { module_name: allowed_acl_value, }
                         if user_acl := request.extra_data.get('user_acl'):
-                            for module_name in user_acl:
-                                if module_name in method.acl:
-                                    if user_acl[module_name] & method.acl[module_name] == method.acl[module_name]:
-                                        break
-                                    else:
-                                        raise PermissionError('Method is forbidden')
+                            if method.acl_func:
+                                if not method.acl_func(user_acl):
+                                    raise PermissionError('Method is forbidden')
                             else:
-                                raise PermissionError('Method is forbidden')
+                                for module_name in user_acl:
+                                    if module_name in method.acl:
+                                        if user_acl[module_name] & method.acl[module_name] == method.acl[module_name]:
+                                            break
+                                        else:
+                                            raise PermissionError('Method is forbidden')
+                                else:
+                                    raise PermissionError('Method is forbidden')
 
 
                     # validate params

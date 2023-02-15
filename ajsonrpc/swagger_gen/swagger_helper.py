@@ -89,7 +89,7 @@ def get_schema_props(schema_fields) -> (dict, list):
 
             if data_type == 'nested':
                 obj['type'] = 'object'
-                pr, req = get_schema_props(param_field.nested.fields)
+                pr, req = get_schema_props(param_field.schema.fields)
                 obj['properties'] = pr
                 obj['required'] = req
 
