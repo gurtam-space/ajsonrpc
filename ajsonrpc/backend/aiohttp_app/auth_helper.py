@@ -26,7 +26,7 @@ async def get_fleet_data(cid: str) -> dict:
         dict(
             entity='fleet',
             key=cid,
-            fields=['id', 'access_lvl']
+            fields=['id', 'access_lvl', 'td', 'td_country']
         )
     )
     if errs:
@@ -35,6 +35,8 @@ async def get_fleet_data(cid: str) -> dict:
     return dict(
         id=data['id'],
         access_lvl=data['access_lvl'],
+        td=data.get('td'),
+        td_country=data.get('td_country')
     ) if data else {}
 
 
@@ -105,6 +107,8 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
         cid = token_data['cid']
         access_lvl = token_data['access_lvl']
         app_id = token_data['app_id']
+        td = token_data.get('td')
+        td_country = token_data.get('td_country')
 
         if allowed_lvl:
             if access_lvl < allowed_lvl:
@@ -130,6 +134,8 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
 
                     cid = _cid
                     access_lvl = _access_lvl
+                    td = acc_data.get('td')
+                    td_country = acc_data.get('td_country')
 
         # get subscription_id
         subscription_id = None
@@ -149,9 +155,9 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             token_key=key,
             store=bool(token_data.get('store')),
             country=token_data.get('country'),
-            td=token_data.get('td'),
+            td=td,
             user_acl=token_data.get('user_acl'),
-            td_country=token_data.get('td_country'),
+            td_country=td_country,
             is_subscribed=token_data.get('is_subscribed'),
             is_managed_account=token_data.get('is_managed_account')
         )
