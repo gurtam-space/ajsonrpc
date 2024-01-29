@@ -19,7 +19,6 @@ from aiohttp.web_exceptions import HTTPUnauthorized, HTTPInternalServerError, HT
 from aiohttp.web_log import AccessLogger
 from aiohttp.log import access_logger
 from aiohttp.web_runner import GracefulExit
-from aiohttp.helpers import all_tasks
 from aiohttp.web import Application as AiohttpApplication, _run_app
 from aiohttp.web_request import Request
 from aiohttp.typedefs import Handler
@@ -179,7 +178,7 @@ def _cancel_all_tasks(loop: asyncio.AbstractEventLoop, on_stop: list, cancel_tas
             f()
 
     # waiting for tasks not from the list of canceled
-    to_wait = all_tasks(loop)
+    to_wait = asyncio.all_tasks
     if not to_wait:
         return
     for task in list(to_wait):
@@ -191,7 +190,7 @@ def _cancel_all_tasks(loop: asyncio.AbstractEventLoop, on_stop: list, cancel_tas
         loop.run_until_complete(asyncio.wait(to_wait, timeout=timeout))
 
     # cancel all tasks
-    to_cancel = all_tasks(loop)
+    to_cancel = asyncio.all_tasks
     if not to_cancel:
         return
     for task in to_cancel:
