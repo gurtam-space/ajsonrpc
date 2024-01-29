@@ -178,7 +178,7 @@ def _cancel_all_tasks(loop: asyncio.AbstractEventLoop, on_stop: list, cancel_tas
             f()
 
     # waiting for tasks not from the list of canceled
-    to_wait = asyncio.all_tasks
+    to_wait = asyncio.all_tasks(loop)
     if not to_wait:
         return
     for task in list(to_wait):
@@ -190,7 +190,7 @@ def _cancel_all_tasks(loop: asyncio.AbstractEventLoop, on_stop: list, cancel_tas
         loop.run_until_complete(asyncio.wait(to_wait, timeout=timeout))
 
     # cancel all tasks
-    to_cancel = asyncio.all_tasks
+    to_cancel = asyncio.all_tasks(loop)
     if not to_cancel:
         return
     for task in to_cancel:
