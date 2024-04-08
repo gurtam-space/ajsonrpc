@@ -1,7 +1,5 @@
-import sys
 import asyncio
-import socket
-from typing import Any, Awaitable, Callable, Coroutine, Optional, Type, Union, Iterable
+from typing import Any, Callable, Coroutine, Optional, Type, Union
 from functools import partial, update_wrapper
 try:
     from ssl import SSLContext
@@ -13,13 +11,10 @@ except Exception:
     import json
 from marshmallow import Schema
 from aiohttp.hdrs import METH_OPTIONS
-from aiohttp.abc import AbstractAccessLogger, AbstractView, AbstractMatchInfo
+from aiohttp.abc import AbstractView, AbstractMatchInfo
 from aiohttp.web_response import StreamResponse
 from aiohttp.web_exceptions import HTTPUnauthorized, HTTPInternalServerError, HTTPBadRequest
-from aiohttp.web_log import AccessLogger
-from aiohttp.log import access_logger
-from aiohttp.web_runner import GracefulExit
-from aiohttp.web import Application as AiohttpApplication, _run_app
+from aiohttp.web import Application as AiohttpApplication
 from aiohttp.web_request import Request
 from aiohttp.typedefs import Handler
 from aiohttp.web_urldispatcher import AbstractRoute, _ExpectHandler
@@ -31,8 +26,8 @@ from .base import set_auth_header_name, get_auth_header_name
 import logging
 logger = logging.getLogger()
 
-# task list to cancel
-CANCEL_TASKS_DEF = '_run_app', 'MQTTProtocol._read_loop', 'Client._resend_qos_messages', 'ClickhouseDB.run_wait',
+
+WAIT_TASKS = ('Totalizer.run')
 
 
 # advanced web-Application
@@ -54,8 +49,6 @@ class Application(AiohttpApplication):
 
         # marshmallow schemas for handlers
         self._handle_schemas = {}
-
-    # def add_routes(self, routes: Iterable[AbstractRouteDef]) -> List[AbstractRoute]: pass
 
     # alias for add route to url-dispatcher with marshmallow schemas and added options method
     def add_route(
@@ -166,98 +159,3 @@ class Application(AiohttpApplication):
             resp = await handler(request)
 
         return resp
-
-
-# callback stop tasks
-def _cancel_all_tasks(loop: asyncio.AbstractEventLoop, on_stop: list, cancel_tasks: list, timeout) -> None:
-    # run stop callbacks
-    for f in on_stop:
-        if asyncio.iscoroutinefunction(f):
-            asyncio.ensure_future(f())
-        else:
-            f()
-
-    # waiting for tasks not from the list of canceled
-    to_wait = asyncio.all_tasks(loop)
-    if not to_wait:
-        return
-    for task in list(to_wait):
-        for name in cancel_tasks:
-            if task._coro.__qualname__ != name:
-                continue
-            to_wait.remove(task)
-    if to_wait:
-        loop.run_until_complete(asyncio.wait(to_wait, timeout=timeout))
-
-    # cancel all tasks
-    to_cancel = asyncio.all_tasks(loop)
-    if not to_cancel:
-        return
-    for task in to_cancel:
-        task.cancel()
-    loop.run_until_complete(
-        asyncio.gather(*to_cancel, return_exceptions=True))
-
-    for task in to_cancel:
-        if task.cancelled():
-            continue
-        if task.exception() is not None:
-            loop.call_exception_handler({
-                'message': 'unhandled exception during asyncio.run() shutdown',
-                'exception': task.exception(),
-                'task': task,
-            })
-
-
-# start application coro
-def run_app(app: Union[Application, Awaitable[Application]], *,
-            host: Optional[str]=None,
-            port: Optional[int]=None,
-            path: Optional[str]=None,
-            sock: Optional[socket.socket]=None,
-            shutdown_timeout: float=60.0,
-            ssl_context: Optional[SSLContext]=None,
-            print: Callable[..., None]=print,
-            backlog: int=128,
-            access_log_class: Type[AbstractAccessLogger]=AccessLogger,
-            access_log_format: str=AccessLogger.LOG_FORMAT,
-            access_log: Optional[logging.Logger]=access_logger,
-            handle_signals: bool=True,
-            reuse_address: Optional[bool]=None,
-            reuse_port: Optional[bool]=None,
-            on_stop: Optional[list]=[],
-            cancel_tasks: Optional[list]=[]) -> None:
-    """Run an app locally"""
-    loop = asyncio.get_event_loop()
-
-    # Configure if and only if in debugging mode and using the default logger
-    if loop.get_debug() and access_log and access_log.name == 'aiohttp.access':
-        if access_log.level == logging.NOTSET:
-            access_log.setLevel(logging.DEBUG)
-        if not access_log.hasHandlers():
-            access_log.addHandler(logging.StreamHandler())
-
-    try:
-        loop.run_until_complete(_run_app(app,
-                                host=host,
-                                port=port,
-                                path=path,
-                                sock=sock,
-                                shutdown_timeout=shutdown_timeout,
-                                ssl_context=ssl_context,
-                                print=print,
-                                backlog=backlog,
-                                access_log_class=access_log_class,
-                                access_log_format=access_log_format,
-                                access_log=access_log,
-                                handle_signals=handle_signals,
-                                reuse_address=reuse_address,
-                                reuse_port=reuse_port))
-    except (GracefulExit, KeyboardInterrupt):  # pragma: no cover
-        pass
-    finally:
-        cancel_tasks.extend(CANCEL_TASKS_DEF)
-        _cancel_all_tasks(loop, on_stop, cancel_tasks, shutdown_timeout)
-        if sys.version_info >= (3, 6):  # don't use PY_36 to pass mypy
-            loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.close()
