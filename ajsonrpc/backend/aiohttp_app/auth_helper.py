@@ -70,7 +70,7 @@ async def get_token_data(key: str) -> dict:
             c=[['key', key, 'eq']],
             count=1,
             fields=['id', 'cid', 'access_lvl', 'info', 'subscription', 'subscriptions', 'store', 'country', 'td',
-                    'user_acl', 'td_country', 'is_subscribed', 'is_managed_account']
+                    'user_id', 'user_acl', 'td_country', 'is_subscribed', 'is_managed_account']
         )
     )
     if errs:
@@ -89,6 +89,7 @@ async def get_token_data(key: str) -> dict:
         country=token_data.get('country') or None,
         # is dealer
         td=bool(token_data.get('td')),
+        user_id=token_data.get('user_id'),
         user_acl=token_data.get('user_acl'),
         td_country=token_data.get('td_country') or None,
         is_subscribed=token_data.get('is_subscribed') or None,
@@ -156,6 +157,7 @@ async def get_auth_data(request: Request, key: str, allowed_lvl: int = ACCESS_LV
             store=bool(token_data.get('store')),
             country=token_data.get('country'),
             td=td,
+            user_id=token_data.get('user_id'),
             user_acl=token_data.get('user_acl'),
             td_country=td_country,
             is_subscribed=token_data.get('is_subscribed'),
